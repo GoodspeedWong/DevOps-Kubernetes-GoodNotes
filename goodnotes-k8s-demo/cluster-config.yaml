@@ -16,8 +16,5 @@ nodes:
         hostPort: 8443
         protocol: TCP
   - role: worker
-      --name demo-worker-01
   - role: worker
-      --name demo-worker-02
   - role: worker
-      --name demo-worker-03

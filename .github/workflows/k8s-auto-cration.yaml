@@ -1,0 +1,41 @@
+name: goodnotes-k8s-demo
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "goodnotes-k8s-demo/**"
+      - ".github/workflows/goodnotes-k8s-demo.yaml"
+
+jobs:
+  cluster-creation:
+    runs-on: [self-hosted, macOS, ARM64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.0
+
+      - name: Install Kind
+        run: |
+          if ! command -v kind >/dev/null 2>&1; then
+            brew install kind
+          fi
+
+      - name: Create Kind cluster
+        run: |
+          kind create cluster \
+            --name goodnotes-k8s-demo \
+            --image kindest/node:v1.32.0 \
+            --config goodnotes-k8s-demo/cluster-config.yaml
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info --context kind-goodnotes-k8s-demo
+          kubectl get nodes
+
+

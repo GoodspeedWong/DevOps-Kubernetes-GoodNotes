@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: foo
+spec:
+  selector: { app: http-echo, variant: foo }
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5678

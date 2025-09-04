@@ -1,0 +1,4 @@
+resources:
+- deployment-config.yaml
+- service.yaml
+- ingress.yaml

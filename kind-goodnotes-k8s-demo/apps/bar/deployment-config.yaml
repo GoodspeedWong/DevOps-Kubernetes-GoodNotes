@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bar
+  namespace: apps
   labels: { app: http-echo, variant: bar }
 spec:
   replicas: 2

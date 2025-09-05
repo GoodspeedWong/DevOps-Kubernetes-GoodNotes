@@ -5,7 +5,7 @@ metadata:
   namespace: apps
   labels: { app: http-echo, variant: foo }
 spec:
-  replicas: 2
+  replicas: 4
   selector: { matchLabels: { app: http-echo, variant: foo } }
   template:
     metadata:

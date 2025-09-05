@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: echo
+  name: bar
   namespace: apps
   annotations:
     kubernetes.io/ingress.class: "nginx"
@@ -16,4 +16,5 @@ spec:
             backend:
               service:
                 name: bar
-                port: { number: 80 }
+                port:
+                  name: http

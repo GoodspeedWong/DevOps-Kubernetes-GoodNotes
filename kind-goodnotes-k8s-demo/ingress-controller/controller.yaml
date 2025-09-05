@@ -506,6 +506,7 @@ spec:
       dnsPolicy: ClusterFirst
       nodeSelector:
         kubernetes.io/os: linux
+        ingress-ready: "true"
       serviceAccountName: ingress-nginx
       terminationGracePeriodSeconds: 0
       tolerations:

@@ -46,7 +46,7 @@ jobs:
 
       - name: Run load test
         run: |
-          python3.12 scripts/load-test.py 10000 50 | tee loadtest.json
+          python3.12 scripts/load-test.py 100000 100 | tee loadtest.json
 
       - name: Post result to PR comment
         if: ${{ github.event_name == 'pull_request' }}

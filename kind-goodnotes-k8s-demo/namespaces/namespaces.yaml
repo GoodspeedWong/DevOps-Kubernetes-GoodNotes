@@ -36,4 +36,11 @@ metadata:
     namespace: apps
     kubernetes.io/metadata.name: apps
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k6
+  labels:
+    namespace: k6
+    kubernetes.io/metadata.name: k6
 

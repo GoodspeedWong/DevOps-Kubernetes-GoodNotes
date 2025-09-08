@@ -1,0 +1,15 @@
+manager:
+  image:
+    repository: ghcr.io/grafana/k6-operator
+    tag: v0.0.23
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits:   { cpu: 500m, memory: 256Mi }
+
+rbac:
+  namespaced: false
+
+
+podAnnotations: {}
+podLabels: {}

@@ -6579,7 +6579,7 @@ spec:
     spec:
       containers:
         - name: manager
-          image: "ghcr.io/ghcr.io/grafana/k6-operator:v0.0.23"
+          image: "ghcr.io/ghcr.io/grafana/k6-operator:controller-v0.0.23"
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:

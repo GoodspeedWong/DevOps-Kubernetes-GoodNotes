@@ -11,7 +11,7 @@ spec:
     metadata:
       labels: { app: http-echo, variant: bar }
     spec:
-      # shareProcessNamespace: true
+      shareProcessNamespace: true
       containers:
         - name: echo
           image: hashicorp/http-echo:1.0.0
@@ -25,11 +25,11 @@ spec:
           resources:
             requests: { cpu: "10m", memory: "16Mi" }
             limits:   { cpu: "200m", memory: "64Mi" }
-        # - name: debug
-        #   image: radial/busyboxplus:curl
-        #   command: ["sh", "-c", "sleep infinity"]
-        #   stdin: true
-        #   tty: true
-        #   resources:
-        #     requests: { cpu: "5m", memory: "8Mi" }
-        #     limits:   { cpu: "50m", memory: "64Mi" }
+        - name: debug
+          image: nicolaka/netshoot
+          command: ["sh", "-c", "sleep infinity"]
+          stdin: true
+          tty: true
+          resources:
+            requests: { cpu: "5m", memory: "8Mi" }
+            limits:   { cpu: "50m", memory: "64Mi" }

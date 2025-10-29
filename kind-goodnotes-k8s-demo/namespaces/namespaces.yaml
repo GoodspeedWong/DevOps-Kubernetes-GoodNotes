@@ -43,4 +43,14 @@ metadata:
   labels:
     namespace: k6
     kubernetes.io/metadata.name: k6
+    app.kubernetes.io/name: k6-operator
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    namespace: argocd
+    kubernetes.io/metadata.name: argocd
 

@@ -1,0 +1,36 @@
+# Minimal Argo CD PoC configuration
+global:
+  domain: argocd.localhost
+  image:
+    repository: quay.io/argoproj/argocd
+    tag: v3.1.9
+  logging:
+    level: info
+    format: text
+
+server:
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+  config:
+    url: https://argocd.localhost
+
+dex:
+  enabled: false  # disable SSO for PoC
+redis:
+  enabled: true
+  image:
+    repository: docker.io/redis
+    tag: 7.2.4-alpine
+
+controller:
+  replicas: 1
+repoServer:
+  replicas: 1
+
+configs:
+  secret:
+    createSecret: true
+    # bcrypt hash for password 'admin'
+    argocdServerAdminPassword: "$2a$10$Ew8C1kRzO4VCOo4bUwAf7e.OGdJ5z9LeAH28OrD5VJ2oMnQFgbBgC"

@@ -433,7 +433,6 @@ spec:
         - --publish-status-address=localhost
         - --metrics-per-host=false
         - --enable-metrics=true
-        - --metrics-listen-addr=:10254
         env:
         - name: POD_NAME
           valueFrom:

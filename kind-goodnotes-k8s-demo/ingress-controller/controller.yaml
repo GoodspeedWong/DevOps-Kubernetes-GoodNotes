@@ -431,6 +431,9 @@ spec:
         - --validating-webhook-key=/usr/local/certificates/key
         - --watch-ingress-without-class=true
         - --publish-status-address=localhost
+        - --metrics-per-host=false
+        - --enable-metrics=true
+        - --metrics-listen-addr=:10254
         env:
         - name: POD_NAME
           valueFrom:
@@ -471,6 +474,9 @@ spec:
           protocol: TCP
         - containerPort: 8443
           name: webhook
+          protocol: TCP
+        - name: metrics
+          containerPort: 10254
           protocol: TCP
         readinessProbe:
           failureThreshold: 3
@@ -673,3 +679,23 @@ webhooks:
     resources:
     - ingresses
   sideEffects: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-metrics
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+spec:
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  ports:
+  - name: metrics
+    port: 10254
+    targetPort: metrics

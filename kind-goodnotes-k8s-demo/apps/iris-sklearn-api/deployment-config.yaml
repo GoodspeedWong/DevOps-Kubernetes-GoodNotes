@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iris-sklearn-api
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: iris-sklearn-api
+  template:
+    metadata:
+      labels:
+        app: iris-sklearn-api
+    spec:
+      containers:
+        - name: api
+          image: iris-sklearn-api:local
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000

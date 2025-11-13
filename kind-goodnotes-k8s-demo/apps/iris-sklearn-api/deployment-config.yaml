@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: iris-sklearn-api
+  namespace: apps
 spec:
   replicas: 4
   selector:

@@ -53,4 +53,11 @@ metadata:
   labels:
     namespace: argocd
     kubernetes.io/metadata.name: argocd
-
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway
+  labels:
+    namespace: gateway
+    kubernetes.io/metadata.name: gateway

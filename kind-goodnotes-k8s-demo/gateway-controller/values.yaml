@@ -1,0 +1,37 @@
+# values.yaml for envoy-gateway
+# Mode: internal ClusterIP + Prometheus metrics enabled
+# Author: your AI buddy 😎
+
+envoyGateway:
+  replicas: 1
+
+gateway:
+  enabled: true
+  name: "eg"
+  namespace: "envoy-gateway"
+  service:
+    type: ClusterIP
+    ports:
+      - name: http
+        port: 80
+        targetPort: 8080
+      - name: https
+        port: 443
+        targetPort: 8443
+      - name: metrics
+        port: 19001
+        targetPort: 19001
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+    additionalLabels: {}
+    metricRelabelings: []
+    relabelings: []
+
+# ---- Logs (optional) ----
+logging:
+  level: info

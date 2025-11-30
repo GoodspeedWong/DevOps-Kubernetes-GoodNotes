@@ -1,0 +1,278 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel
+  namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-agent-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+      hostmetrics:
+        collection_interval: 30s
+        scrapers:
+          cpu: {}
+          memory: {}
+          filesystem: {}
+          network: {}
+      filelog:
+        include: [ /var/log/containers/*.log ]
+        start_at: beginning
+        operators:
+          - type: container
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+      batch:
+        timeout: 5s
+        send_batch_size: 8192
+      attributes:
+        actions:
+          - key: k8s.cluster.name
+            value: prod-cluster
+            action: upsert
+          - key: deployment.environment
+            value: prod
+            action: upsert
+    exporters:
+      otlp:
+        endpoint: otel-gateway.monitoring.svc.cluster.local:4317
+        tls: { insecure: true }
+      prometheus:
+        endpoint: 0.0.0.0:8889
+    extensions:
+      health_check: {}
+    service:
+      extensions: [ health_check ]
+      pipelines:
+        metrics:
+          receivers: [ hostmetrics ]
+          processors: [ memory_limiter, batch, attributes ]
+          exporters: [ otlp, prometheus ]
+        logs:
+          receivers: [ filelog ]
+          processors: [ memory_limiter, batch, attributes ]
+          exporters: [ otlp ]
+        traces:
+          receivers: [ otlp ]
+          processors: [ memory_limiter, batch, attributes ]
+          exporters: [ otlp ]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-agent
+  namespace: monitoring
+  labels: { app: otel-agent }
+spec:
+  selector:
+    matchLabels: { app: otel-agent }
+  template:
+    metadata:
+      labels: { app: otel-agent }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8889"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: otel
+      hostNetwork: false
+      containers:
+      - name: otelcol
+        image: otel/opentelemetry-collector-contrib:0.103.0
+        imagePullPolicy: IfNotPresent
+        args: ["--config=/etc/otel/config.yaml"]
+        ports:
+          - containerPort: 4317 # OTLP gRPC（OpenTelemetry Protocol）
+            name: otlp-grpc
+          - containerPort: 4318 # OTLP HTTP（OpenTelemetry Protocol）
+            name: otlp-http
+          - containerPort: 8889 # Prometheus metrics
+            name: metrics
+        resources:
+          limits: { cpu: "1000m", memory: "1Gi" }
+          requests: { cpu: "200m", memory: "256Mi" }
+        volumeMounts:
+          - name: config
+            mountPath: /etc/otel
+          - name: varlog
+            mountPath: /var/log
+          - name: varlibdockercontainers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+          - name: varlogpods
+            mountPath: /var/log/pods
+            readOnly: true
+        readinessProbe:
+          httpGet: { path: /, port: 13133 }
+          initialDelaySeconds: 30
+        livenessProbe:
+          httpGet: { path: /, port: 13133 }
+          initialDelaySeconds: 30
+      volumes:
+        - name: config
+          configMap:
+            name: otel-agent-config
+        - name: varlog
+          hostPath: { path: /var/log }
+        - name: varlibdockercontainers
+          hostPath: { path: /var/lib/docker/containers }
+        - name: varlogpods
+          hostPath: { path: /var/log/pods }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-gateway-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+      batch:
+        timeout: 5s
+        send_batch_size: 8192
+
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.monitoring.svc.cluster.local:4317
+        tls:
+          insecure: true
+      prometheusremotewrite:
+        endpoint: http://mimir-write.monitoring.svc:8080/api/v1/push
+      loki:
+        endpoint: http://loki-gateway.monitoring.svc:3100/loki/api/v1/push
+      # 用于接收来自 Agent 的 metrics/logs 时先就地观测，之后可替换为 Mimir/Loki 等后端
+      logging:
+        verbosity: normal
+
+    extensions:
+      health_check: {}
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/tempo]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [prometheusremotewrite, logging]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [loki, logging]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-gateway
+  namespace: monitoring
+  labels: { app: otel-gateway }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: otel-gateway }
+  template:
+    metadata:
+      labels: { app: otel-gateway }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"   # Collector 默认 metrics 端口
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: otel
+      containers:
+      - name: otelcol
+        image: otel/opentelemetry-collector-contrib:0.103.0
+        imagePullPolicy: IfNotPresent
+        args: ["--config=/etc/otel/config.yaml"]
+        ports:
+          - containerPort: 4317
+            name: otlp-grpc
+          - containerPort: 4318
+            name: otlp-http
+          - containerPort: 8888
+            name: metrics
+        resources:
+          limits: { cpu: "1000m", memory: "1Gi" }
+          requests: { cpu: "200m", memory: "256Mi" }
+        volumeMounts:
+          - name: config
+            mountPath: /etc/otel
+        readinessProbe:
+          httpGet: { path: /, port: 13133 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /, port: 13133 }
+          initialDelaySeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: otel-gateway-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-gateway
+  namespace: monitoring
+  labels: { app: otel-gateway }
+spec:
+  selector: { app: otel-gateway }
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: otel-gateway-pdb
+  namespace: monitoring
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: otel-gateway
+# ---
+# apiVersion: autoscaling/v2
+# kind: HorizontalPodAutoscaler
+# metadata:
+#   name: otel-gateway-hpa
+#   namespace: monitoring
+# spec:
+#   scaleTargetRef:
+#     apiVersion: apps/v1
+#     kind: Deployment
+#     name: otel-gateway
+#   minReplicas: 3
+#   maxReplicas: 10
+#   metrics:
+#     - type: Resource
+#       resource:
+#         name: cpu
+#         target:
+#           type: Utilization
+#           averageUtilization: 70

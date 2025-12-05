@@ -1,3 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-k8sattributes
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces", "nodes"]
+    verbs: ["get", list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-k8sattributes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-k8sattributes
+subjects:
+  - kind: ServiceAccount
+    name: otel
+    namespace: monitoring
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -175,7 +197,7 @@ data:
       loki:
         endpoint: http://loki-gateway.monitoring.svc/loki/api/v1/push
         headers:
-          X-Scope-OrgID: "perfume"
+          X-Scope-OrgID: "fake"
       # 用于接收来自 Agent 的 metrics/logs 时先就地观测，之后可替换为 Mimir/Loki 等后端
       logging:
         verbosity: normal
